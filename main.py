@@ -1526,4 +1526,7 @@ def generate_pdf_report(test_type, athlete_name, birth_date, test_date, weight, 
     pdf_bytes = buffer.getvalue()
     buffer.close()
     
-    return pdf_bytes               
+    return pdf_bytes     
+
+if __name__ == "__main__":
+    # Code to initialize app          
