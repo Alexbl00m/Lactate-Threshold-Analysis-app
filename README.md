@@ -1,67 +1,76 @@
-Lactate Threshold Analysis Tool - Summary
-The application I've designed is a comprehensive Streamlit-based web tool for analyzing lactate threshold tests for cycling, running, and swimming, matching the requirements you specified.
-Key Features:
+# Lactate Threshold Analysis Tool
 
-Multi-sport Support:
+A comprehensive web application for analyzing lactate threshold tests for cycling, running, and swimming. The tool uses various methods to determine physiological thresholds and generates training zones based on the results.
 
-Cycling (power in watts)
-Running (speed in km/h and pace in min/km)
-Swimming (speed in m/s and pace in min/100m)
+## Features
 
+- Support for cycling (power-based), running (pace-based), and swimming (speed-based) tests
+- Multiple threshold calculation methods:
+  - Fixed 2.0 mmol/L
+  - Fixed 4.0 mmol/L
+  - OBLA (Onset of Blood Lactate Accumulation)
+  - LT (Lactate Threshold)
+  - IAT (Individual Anaerobic Threshold)
+  - Modified Dmax
+  - Log-Log
+  - Log-Exp-ModDmax
+  - Exponential Dmax
+- Interactive data input interface
+- Visualization of lactate curves and thresholds
+- Training zone calculations specific to each sport
+- PDF report generation with test results
+- Responsive design with custom branding
 
-Multiple Threshold Methods:
+## Installation
 
-Fixed values (2.0 mmol/L, 4.0 mmol/L)
-OBLA (Onset of Blood Lactate Accumulation)
-LT (Lactate Threshold - baseline + 1.0 mmol/L)
-IAT (Individual Anaerobic Threshold - baseline + 0.5 mmol/L)
-Modified Dmax (maximum perpendicular distance method)
-Log-Log method
-And more configurable methods
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/lactate-threshold-analysis.git
+   cd lactate-threshold-analysis
+   ```
 
+2. Create a virtual environment and activate it:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-Interactive Interface:
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Step-by-step protocol setup
-Easy data input with a data editor
-Results visualization with interactive charts
-Training zone calculations and visualizations
+4. Run the application:
+   ```bash
+   streamlit run main.py
+   ```
 
+## Usage
 
-Branded Design:
+1. Select the sport type (Cycling, Running, or Swimming)
+2. Enter athlete information
+3. Set up the test protocol parameters
+4. Input the measured data (intensity, heart rate, lactate)
+5. Calculate thresholds
+6. View results, visualize data, and export PDF reports
 
-Custom styling with Montserrat font
-Your brand color (#E6754E) throughout the interface
-Responsive layout with Streamlit components
+## Requirements
 
+- Python 3.8+
+- Libraries listed in requirements.txt
 
-Export Capabilities:
+## Customization
 
-Comprehensive PDF report generation
-Includes athlete info, results, training zones, and explanations
-Branded with your logo and color scheme
+- Place your logo in the root directory as "logo.png"
+- The app uses Montserrat font for PDF reports. Place font files in the root directory:
+  - Montserrat-Regular.ttf
+  - Montserrat-Bold.ttf
 
+## License
 
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-How to Use:
+## Acknowledgements
 
-Installation: Install the required packages from requirements.txt
-Run: Execute the app using streamlit run main.py
-Usage Flow:
-
-Setup athlete information and test type
-Configure protocol parameters
-Input test data (intensity, heart rate, lactate values)
-Calculate thresholds
-View and export results
-
-
-
-Files Included:
-
-main.py: The main application code
-requirements.txt: Dependencies for easy installation
-logo_setup.py: Helper script to create a placeholder logo
-README.md: Documentation for using and customizing the app
-
-The tool follows your specifications for threshold calculations, including the modified DMax method where it draws a line from the first point where lactate exceeds baseline+0.5 mmol to the maximum lactate point, then finds the furthest point from this line.
+- Developed for Lindblom Coaching
+- Uses scientific threshold detection methods based on sports science literature
