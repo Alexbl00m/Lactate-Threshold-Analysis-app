@@ -1528,5 +1528,8 @@ def generate_pdf_report(test_type, athlete_name, birth_date, test_date, weight, 
     
     return pdf_bytes     
 
+# Main execution
 if __name__ == "__main__":
-    # Code to initialize app          
+    # Code to initialize app
+    st.markdown("App initialized")  # Or any other initialization code
+    
