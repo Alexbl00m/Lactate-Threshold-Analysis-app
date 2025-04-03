@@ -172,6 +172,8 @@ def create_protocol_setup_tab(test_type, test_parameters):
     dict
         Protocol settings
     """
+    import streamlit as st
+    
     st.write(f"Indicate the sport that you would like to analyze lactate thresholds on: **{test_type}**")
     
     # Include heart rate data
@@ -199,7 +201,7 @@ def create_protocol_setup_tab(test_type, test_parameters):
     elif test_type == "Swimming":
         sport_settings = swimming_protocol_inputs()
     
-    # Last step completion
+    # Last step completion - MODIFIED: Keeping this toggle but ensuring data can still be entered
     last_step_completed = st.toggle("Was the last step fully completed?", value=False)
     
     last_step_time = None
@@ -207,6 +209,7 @@ def create_protocol_setup_tab(test_type, test_parameters):
         col1, col2 = st.columns([1, 4])
         with col1:
             last_step_time = st.text_input("Then, indicate how long it was (in the mm:ss format)", value="02:00")
+        st.info("Note: You'll still be able to enter lactate, heart rate, and other values for the last step even though it wasn't completed.")
     
     # Curve fitting method
     st.subheader("Choose the default fitting method")
@@ -323,7 +326,7 @@ def swimming_protocol_inputs():
 
 def create_data_input_tab(test_type, protocol_settings, test_parameters):
     """
-    Create content for data input tab
+    Create content for data input tab - MODIFIED to ensure last step data can be entered
     
     Parameters:
     -----------
@@ -339,6 +342,8 @@ def create_data_input_tab(test_type, protocol_settings, test_parameters):
     pandas.DataFrame or None
         Edited dataframe with test data
     """
+    import streamlit as st
+    
     if 'df_template' not in st.session_state:
         # Create empty dataframe based on protocol settings
         df_template = generate_protocol_template(
@@ -372,6 +377,12 @@ def create_data_input_tab(test_type, protocol_settings, test_parameters):
     elif test_type == "Swimming":
         column_config["speed_ms"] = st.column_config.NumberColumn("Speed (m/s)", help="Swimming speed in m/s")
     
+    # Display note for incomplete last step
+    if not protocol_settings.get('last_step_completed', True) and protocol_settings.get('num_steps', 0) > 1:
+        last_step_num = protocol_settings.get('num_steps', 8) - 1
+        last_step_time = protocol_settings.get('last_step_time', "unknown")
+        st.info(f"Step {last_step_num} was not completed fully (duration: {last_step_time}). Please still enter all values for this step.")
+    
     # Create input fields for the data
     edited_df = st.data_editor(
         df,
@@ -384,11 +395,14 @@ def create_data_input_tab(test_type, protocol_settings, test_parameters):
     # Store the edited dataframe in session state
     st.session_state['edited_df'] = edited_df
     
+    # Add a note below the data editor
+    st.write("Make sure to enter all values including for the last step, even if it wasn't completed fully.")
+    
     return edited_df
 
 def generate_protocol_template(test_type, num_steps, step_length, rest_hr, rest_lactate, protocol_settings):
     """
-    Generate a protocol template dataframe
+    Generate a protocol template dataframe - MODIFIED to handle incomplete last step better
     
     Parameters:
     -----------
@@ -410,6 +424,23 @@ def generate_protocol_template(test_type, num_steps, step_length, rest_hr, rest_
     pandas.DataFrame
         Template dataframe for data input
     """
+    import pandas as pd
+    
+    # Create a list to store the step lengths
+    step_lengths = [step_length] * num_steps
+    
+    # Modify the last step length if it wasn't completed
+    if not protocol_settings.get('last_step_completed', True) and num_steps > 1:
+        last_step_time = protocol_settings.get('last_step_time', "00:00")
+        
+        # Convert time string to minutes
+        from utils import time_mm_ss_to_min
+        completed_minutes = time_mm_ss_to_min(last_step_time)
+        
+        # Update the last step length
+        if completed_minutes > 0:
+            step_lengths[num_steps - 1] = completed_minutes
+    
     if test_type == "Cycling":
         starting_load = protocol_settings.get('starting_load', 100)
         load_increment = protocol_settings.get('load_increment', 25)
@@ -417,7 +448,7 @@ def generate_protocol_template(test_type, num_steps, step_length, rest_hr, rest_
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "load_watts": [starting_load + i * load_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
@@ -435,7 +466,7 @@ def generate_protocol_template(test_type, num_steps, step_length, rest_hr, rest_
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "speed_kmh": [starting_speed + i * speed_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
@@ -453,7 +484,7 @@ def generate_protocol_template(test_type, num_steps, step_length, rest_hr, rest_
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "speed_ms": [starting_speed + i * speed_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
