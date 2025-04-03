@@ -59,7 +59,9 @@ def main():
         display_results(test_type, athlete_info)
 
 def protocol_setup(test_type, test_parameters):
-    """Handle the protocol setup tab"""
+    """Handle the protocol setup tab - MODIFIED to ensure last step values can be entered"""
+    import streamlit as st
+    
     st.write(f"Indicate the sport that you would like to analyze lactate thresholds on: **{test_type}**")
     
     # Include heart rate data
@@ -84,8 +86,23 @@ def protocol_setup(test_type, test_parameters):
     elif test_type == "Swimming":
         swimming_protocol_inputs()
     
+    # Last step completion - MODIFIED to add clarification
+    last_step_completed = st.toggle("Was the last step fully completed?", value=False)
+    
+    if not last_step_completed:
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            last_step_time = st.text_input("Then, indicate how long it was (in the mm:ss format)", value="02:00")
+        st.info("Note: You'll still be able to enter lactate, heart rate, and other values for the last step even though it wasn't completed.")
+    else:
+        last_step_time = None
+    
     # Additional protocol settings
     protocol_additional_settings()
+    
+    # Store the last step info properly
+    st.session_state['last_step_completed'] = last_step_completed
+    st.session_state['last_step_time'] = last_step_time
     
     # Generate protocol button
     if st.button("Generate Test Protocol", type="primary"):
@@ -184,9 +201,33 @@ def protocol_additional_settings():
     st.session_state['log_log_portion'] = log_log_portion
 
 def generate_protocol_template(test_type, num_steps, step_length, test_parameters):
-    """Generate a protocol template based on user input"""
+    """Generate a protocol template based on user input - MODIFIED to handle incomplete last step"""
+    import pandas as pd
+    import streamlit as st
+    
     rest_hr = test_parameters.get('rest_hr', 60)
     rest_lactate = test_parameters.get('rest_lactate', 0.8)
+    
+    # Create a list to store the step lengths
+    step_lengths = [step_length] * num_steps
+    
+    # Modify the last step length if it wasn't completed
+    if not st.session_state.get('last_step_completed', True) and num_steps > 1:
+        last_step_time = st.session_state.get('last_step_time', "00:00")
+        
+        # Convert time string to minutes (simple conversion for this example)
+        try:
+            parts = last_step_time.split(':')
+            minutes = int(parts[0])
+            seconds = int(parts[1]) if len(parts) > 1 else 0
+            completed_minutes = minutes + seconds / 60
+            
+            # Update the last step length
+            if completed_minutes > 0:
+                step_lengths[num_steps - 1] = completed_minutes
+        except:
+            # If conversion fails, keep the original length
+            pass
     
     if test_type == "Cycling":
         starting_load = st.session_state.get('starting_load', 100)
@@ -195,7 +236,7 @@ def generate_protocol_template(test_type, num_steps, step_length, test_parameter
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "load_watts": [starting_load + i * load_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
@@ -213,7 +254,7 @@ def generate_protocol_template(test_type, num_steps, step_length, test_parameter
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "speed_kmh": [starting_speed + i * speed_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
@@ -231,7 +272,7 @@ def generate_protocol_template(test_type, num_steps, step_length, test_parameter
         df_template = pd.DataFrame({
             "step": range(num_steps),
             "speed_ms": [starting_speed + i * speed_increment for i in range(num_steps)],
-            "length": [step_length] * num_steps,
+            "length": step_lengths,
             "heart_rate": [None] * num_steps,
             "lactate": [None] * num_steps,
             "rpe": [None] * num_steps
@@ -246,13 +287,21 @@ def generate_protocol_template(test_type, num_steps, step_length, test_parameter
     st.session_state['df_template'] = df_template
 
 def data_input(test_type):
-    """Handle the data input tab"""
+    """Handle the data input tab - MODIFIED to clarify incomplete last step"""
+    import streamlit as st
+    
     if 'df_template' not in st.session_state:
         st.info("Please set up the protocol in the Protocol Setup tab first.")
     else:
         st.subheader("Data Input")
         
         df = st.session_state['df_template'].copy()
+        
+        # Display note for incomplete last step
+        if not st.session_state.get('last_step_completed', True) and len(df) > 1:
+            last_step_num = len(df) - 1
+            last_step_time = st.session_state.get('last_step_time', "unknown")
+            st.info(f"Step {last_step_num} was not completed fully (duration: {last_step_time}). Please still enter all values for this step.")
         
         # Set up column configuration based on test type
         column_config = {
@@ -282,21 +331,36 @@ def data_input(test_type):
         
         st.session_state['edited_df'] = edited_df
         
+        # Add a note below the data editor
+        st.write("Make sure to enter all values including for the last step, even if it wasn't completed fully.")
+        
         # Calculate button
         if st.button("Calculate Thresholds", type="primary"):
             process_threshold_calculation(test_type)
 
 def process_threshold_calculation(test_type):
     """Process the data and calculate thresholds"""
-    if st.session_state['edited_df']['lactate'].isna().any():
+    import streamlit as st
+    
+    # Check if all necessary lactate values are present
+    if 'edited_df' not in st.session_state or st.session_state['edited_df']['lactate'].isna().any():
         st.error("Please fill in all lactate values before calculating thresholds.")
     else:
         # Get data and parameters
         df = st.session_state['edited_df'].copy()
+        
+        # Get threshold methods from session state or sidebar
         threshold_methods = st.session_state.get('threshold_methods', [])
+        if not threshold_methods:
+            # If methods weren't stored, use defaults
+            threshold_methods = ["IAT (Individual Anaerobic Threshold)", "Modified Dmax"]
+        
         fitting_method = st.session_state.get('fitting_method', "3rd degree polynomial")
         log_log_portion = st.session_state.get('log_log_portion', 0.75)
         include_baseline = st.session_state.get('include_baseline', False)
+        
+        # Import calculation function
+        from threshold_methods import calculate_thresholds
         
         # Calculate thresholds
         threshold_results = calculate_thresholds(
@@ -312,6 +376,7 @@ def process_threshold_calculation(test_type):
         st.session_state['threshold_results'] = threshold_results
         
         # Generate plots
+        from plotting import generate_plots
         generate_plots(df, test_type, threshold_results)
         
         # Success message
