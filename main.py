@@ -502,47 +502,118 @@ def display_summary_results(test_type, athlete_info):
         )
 
 def display_graphs():
-    """Display lactate curve graphs"""
+    """Display lactate curve graphs with error handling"""
+    import streamlit as st
+    import plotly.graph_objects as go
+    
     st.subheader("Lactate Curve and Thresholds")
     
-    if 'plotly_fig' in st.session_state:
-        st.plotly_chart(st.session_state['plotly_fig'], use_container_width=True)
-        
-        # Add explanation
-        st.markdown("""
-        <div class="result-box">
-        <h4>Lactate Curve Explanation</h4>
-        <p>The lactate curve shows the relationship between exercise intensity and blood lactate concentration. 
-        The thresholds identified on this curve represent key physiological transitions:</p>
-        <ul>
-        <li><strong>Lactate Threshold (LT):</strong> The intensity at which lactate begins to accumulate in the blood at a faster rate than it can be removed.</li>
-        <li><strong>Individual Anaerobic Threshold (IAT):</strong> The highest intensity that can be maintained without continuous lactate accumulation.</li>
-        <li><strong>Modified Dmax:</strong> The point on the curve with the maximum perpendicular distance from the line connecting the first significant lactate rise and the last data point.</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    if 'plotly_fig' in st.session_state and st.session_state['plotly_fig'] is not None:
+        try:
+            # Try to display the plotly figure
+            st.plotly_chart(st.session_state['plotly_fig'], use_container_width=True)
+            
+            # Add explanation
+            st.markdown("""
+            <div class="result-box">
+            <h4>Lactate Curve Explanation</h4>
+            <p>The lactate curve shows the relationship between exercise intensity and blood lactate concentration. 
+            The thresholds identified on this curve represent key physiological transitions:</p>
+            <ul>
+            <li><strong>Lactate Threshold (LT):</strong> The intensity at which lactate begins to accumulate in the blood at a faster rate than it can be removed.</li>
+            <li><strong>Individual Anaerobic Threshold (IAT):</strong> The highest intensity that can be maintained without continuous lactate accumulation.</li>
+            <li><strong>Modified Dmax:</strong> The point on the curve with the maximum perpendicular distance from the line connecting the first significant lactate rise and the last data point.</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        except Exception as e:
+            # Handle any errors with the plotly figure
+            st.error(f"Could not display the lactate curve. You may need to recalculate thresholds.")
+            
+            # Create a fallback simple figure
+            if 'edited_df' in st.session_state and 'threshold_results' in st.session_state:
+                try:
+                    # Try to create a simple fallback figure
+                    df = st.session_state['edited_df']
+                    
+                    # Determine intensity column based on test type
+                    if 'load_watts' in df.columns:
+                        intensity_col = 'load_watts'
+                        intensity_label = 'Power (Watts)'
+                    elif 'speed_kmh' in df.columns:
+                        intensity_col = 'speed_kmh'
+                        intensity_label = 'Speed (km/h)'
+                    elif 'speed_ms' in df.columns:
+                        intensity_col = 'speed_ms'
+                        intensity_label = 'Speed (m/s)'
+                    else:
+                        intensity_col = None
+                    
+                    if intensity_col is not None:
+                        # Create a simple fallback figure
+                        fig = go.Figure()
+                        
+                        # Add lactate curve
+                        fig.add_trace(go.Scatter(
+                            x=df[intensity_col],
+                            y=df['lactate'],
+                            mode='lines+markers',
+                            name='Lactate',
+                            line=dict(color='#E6754E', width=3),
+                            marker=dict(size=8)
+                        ))
+                        
+                        # Update layout
+                        fig.update_layout(
+                            title='Lactate-to-performance-curve',
+                            xaxis_title=intensity_label,
+                            yaxis_title='Lactate (mmol/L)',
+                            template="plotly_white"
+                        )
+                        
+                        # Display fallback figure
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.info("Displaying a simplified lactate curve. For detailed thresholds, try recalculating.")
+                except Exception as fallback_error:
+                    # If even the fallback fails, just show a message
+                    st.info("Could not display lactate curve data. Please calculate thresholds first.")
+            else:
+                st.info("No lactate curve data available. Please calculate thresholds first.")
+    else:
+        st.info("No lactate curve data available. Please calculate thresholds first.")
 
 def display_training_zones():
-    """Display training zones visualization"""
+    """Display training zones visualization with error handling"""
+    import streamlit as st
+    import plotly.graph_objects as go
+    
     st.subheader("Training Zones")
     
-    if 'plotly_zones' in st.session_state:
-        st.plotly_chart(st.session_state['plotly_zones'], use_container_width=True)
-        
-        # Add explanation
-        st.markdown("""
-        <div class="result-box">
-        <h4>Training Zones Explanation</h4>
-        <p>The training zones are calculated based on your primary threshold value:</p>
-        <ul>
-        <li><strong>Zone 1 (Recovery):</strong> Very light intensity training for active recovery.</li>
-        <li><strong>Zone 2 (Endurance):</strong> Builds aerobic capacity and fat metabolism. Comfortable, conversational pace.</li>
-        <li><strong>Zone 3 (Tempo/Sweetspot):</strong> Moderately hard effort that improves lactate clearance and endurance.</li>
-        <li><strong>Zone 4 (Threshold):</strong> Hard effort at or near your lactate threshold that improves lactate tolerance.</li>
-        <li><strong>Zone 5 (VO2Max):</strong> Very hard, intense efforts that develop maximum aerobic capacity.</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    if 'plotly_zones' in st.session_state and st.session_state['plotly_zones'] is not None:
+        try:
+            # Try to display the zones figure
+            st.plotly_chart(st.session_state['plotly_zones'], use_container_width=True)
+            
+            # Add explanation
+            st.markdown("""
+            <div class="result-box">
+            <h4>Training Zones Explanation</h4>
+            <p>The training zones are calculated based on your primary threshold value:</p>
+            <ul>
+            <li><strong>Zone 1 (Recovery):</strong> Very light intensity training for active recovery.</li>
+            <li><strong>Zone 2 (Endurance):</strong> Builds aerobic capacity and fat metabolism. Comfortable, conversational pace.</li>
+            <li><strong>Zone 3 (Tempo/Sweetspot):</strong> Moderately hard effort that improves lactate clearance and endurance.</li>
+            <li><strong>Zone 4 (Threshold):</strong> Hard effort at or near your lactate threshold that improves lactate tolerance.</li>
+            <li><strong>Zone 5 (VO2Max):</strong> Very hard, intense efforts that develop maximum aerobic capacity.</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        except Exception as e:
+            # Handle any errors with the zones figure
+            st.error("Could not display the training zones chart. You may need to recalculate thresholds.")
+            st.info("Training zones can be viewed in the Summary tab as a table.")
+    else:
+        st.info("No training zones data available. Please calculate thresholds first.")
 
 def display_training_zones_table(test_type, athlete_info):
     """Display training zones as a table"""
@@ -585,6 +656,287 @@ def determine_primary_threshold_method():
         return list(st.session_state['threshold_results'].keys())[0]
     
     return None
+
+def process_threshold_calculation(test_type):
+    """Process the data and calculate thresholds with improved error handling"""
+    import streamlit as st
+    import plotly.graph_objects as go
+    
+    # Check if all necessary lactate values are present
+    if 'edited_df' not in st.session_state or st.session_state['edited_df']['lactate'].isna().any():
+        st.error("Please fill in all lactate values before calculating thresholds.")
+    else:
+        # Get data and parameters
+        df = st.session_state['edited_df'].copy()
+        
+        # Get threshold methods from session state or sidebar
+        threshold_methods = st.session_state.get('threshold_methods', [])
+        if not threshold_methods:
+            # If methods weren't stored, use defaults
+            threshold_methods = ["IAT (Individual Anaerobic Threshold)", "Modified Dmax"]
+        
+        fitting_method = st.session_state.get('fitting_method', "3rd degree polynomial")
+        log_log_portion = st.session_state.get('log_log_portion', 0.75)
+        include_baseline = st.session_state.get('include_baseline', False)
+        
+        # Import calculation function
+        from threshold_methods import calculate_thresholds
+        
+        try:
+            # Calculate thresholds
+            threshold_results = calculate_thresholds(
+                df, 
+                test_type, 
+                threshold_methods, 
+                fitting_method, 
+                log_log_portion,
+                include_baseline
+            )
+            
+            # Store results in session state
+            st.session_state['threshold_results'] = threshold_results
+            
+            try:
+                # Try to generate plots with error handling
+                from plotting import generate_plots
+                generate_plots(df, test_type, threshold_results)
+                
+                # Verify that the plots were generated correctly
+                if 'plotly_fig' not in st.session_state or st.session_state['plotly_fig'] is None:
+                    # Create a simple fallback figure
+                    create_fallback_plot(df, test_type, threshold_results)
+                
+                # Success message
+                st.success("Thresholds calculated successfully! See results in the Results tab.")
+            except Exception as plot_error:
+                # Handle plotting errors
+                st.warning("Thresholds were calculated, but there was an error generating the plots.")
+                st.info("You can still view the threshold values in the Results tab.")
+                
+                # Create a fallback plot
+                create_fallback_plot(df, test_type, threshold_results)
+                
+                # For debugging
+                st.session_state['plot_error'] = str(plot_error)
+        except Exception as calc_error:
+            # Handle threshold calculation errors
+            st.error("There was an error calculating the thresholds. Please check your input data.")
+            st.session_state['calc_error'] = str(calc_error)
+
+def create_fallback_plot(df, test_type, threshold_results):
+    """Create a simple fallback plot when the main plotting function fails"""
+    import streamlit as st
+    import plotly.graph_objects as go
+    
+    # Determine intensity column based on test type
+    if test_type == "Cycling":
+        intensity_col = "load_watts"
+        intensity_label = "Power (Watts)"
+    elif test_type == "Running":
+        intensity_col = "speed_kmh"
+        intensity_label = "Speed (km/h)"
+    else:  # Swimming
+        intensity_col = "speed_ms"
+        intensity_label = "Speed (m/s)"
+    
+    # Store in session state for reference
+    st.session_state['intensity_col'] = intensity_col
+    st.session_state['intensity_label'] = intensity_label
+    
+    # Remove rest values (step 0) for plotting
+    df_plot = df[df['step'] > 0].copy()
+    
+    try:
+        # Create a simple figure
+        fig = go.Figure()
+        
+        # Add lactate curve
+        fig.add_trace(go.Scatter(
+            x=df_plot[intensity_col],
+            y=df_plot['lactate'],
+            mode='lines+markers',
+            name='Lactate',
+            line=dict(color='#E6754E', width=3),
+            marker=dict(size=8)
+        ))
+        
+        # Add heart rate if available
+        if 'heart_rate' in df_plot.columns and not df_plot['heart_rate'].isna().all():
+            fig.add_trace(go.Scatter(
+                x=df_plot[intensity_col],
+                y=df_plot['heart_rate'],
+                mode='lines+markers',
+                name='Heart Rate',
+                line=dict(color='#4EA1E6', width=3),
+                marker=dict(size=8),
+                yaxis='y2'
+            ))
+            
+            # Update layout for dual axis
+            fig.update_layout(
+                yaxis2=dict(
+                    title='Heart Rate (bpm)',
+                    titlefont=dict(color='#4EA1E6'),
+                    tickfont=dict(color='#4EA1E6'),
+                    anchor="x",
+                    overlaying="y",
+                    side="right"
+                )
+            )
+        
+        # Add thresholds as vertical lines
+        for method, result in threshold_results.items():
+            if 'value' in result:
+                fig.add_vline(
+                    x=result['value'],
+                    line_dash="dash",
+                    line_color="green",
+                    annotation_text=f"{method}: {result['value']:.1f}",
+                    annotation_position="top right"
+                )
+        
+        # Update layout
+        fig.update_layout(
+            title='Lactate-to-performance-curve',
+            xaxis_title=intensity_label,
+            yaxis=dict(
+                title='Lactate (mmol/L)',
+                titlefont=dict(color='#E6754E'),
+                tickfont=dict(color='#E6754E')
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            template="plotly_white",
+            hovermode="x unified"
+        )
+        
+        # Store figure in session state
+        st.session_state['plotly_fig'] = fig
+        
+        # Also create a simple zones figure
+        create_fallback_zones(df_plot, test_type, threshold_results)
+        
+    except Exception as e:
+        # If even the fallback plot fails
+        st.session_state['fallback_error'] = str(e)
+        st.session_state['plotly_fig'] = None
+
+def create_fallback_zones(df_plot, test_type, threshold_results):
+    """Create a simple fallback zones plot"""
+    import streamlit as st
+    import plotly.graph_objects as go
+    import numpy as np
+    
+    # Get intensity column
+    intensity_col = st.session_state.get('intensity_col')
+    intensity_label = st.session_state.get('intensity_label')
+    
+    try:
+        # Create a simple zones figure
+        fig_zones = go.Figure()
+        
+        # Determine a primary threshold method
+        primary_method = None
+        for method in ['IAT', 'Modified Dmax', 'Fixed 4.0 mmol/L']:
+            if method in threshold_results:
+                primary_method = method
+                break
+        
+        if primary_method is None and threshold_results:
+            # Use the first available method
+            primary_method = list(threshold_results.keys())[0]
+        
+        if primary_method and primary_method in threshold_results:
+            threshold_value = threshold_results[primary_method]['value']
+            
+            # Set zone colors
+            zone_colors = {
+                'Z1': 'rgba(173, 216, 230, 0.3)',  # Light blue
+                'Z2': 'rgba(255, 255, 150, 0.3)',  # Light yellow
+                'Z3': 'rgba(255, 200, 150, 0.3)',  # Light orange
+                'Z4': 'rgba(255, 150, 150, 0.3)',  # Light red
+                'Z5': 'rgba(200, 120, 120, 0.3)'   # Darker red
+            }
+            
+            # Get min and max intensity values
+            x_min = min(df_plot[intensity_col])
+            x_max = max(df_plot[intensity_col]) * 1.1
+            y_max = max(df_plot['lactate']) * 1.1
+            
+            # Create simple zone boundaries
+            zones = [
+                {'name': 'Z1', 'min': x_min, 'max': 0.7 * threshold_value, 'color': zone_colors['Z1']},
+                {'name': 'Z2', 'min': 0.7 * threshold_value, 'max': 0.9 * threshold_value, 'color': zone_colors['Z2']},
+                {'name': 'Z3', 'min': 0.9 * threshold_value, 'max': 1.0 * threshold_value, 'color': zone_colors['Z3']},
+                {'name': 'Z4', 'min': 1.0 * threshold_value, 'max': 1.1 * threshold_value, 'color': zone_colors['Z4']},
+                {'name': 'Z5', 'min': 1.1 * threshold_value, 'max': x_max, 'color': zone_colors['Z5']}
+            ]
+            
+            # Add rectangles for each zone
+            for zone in zones:
+                fig_zones.add_shape(
+                    type="rect",
+                    x0=zone['min'],
+                    x1=zone['max'],
+                    y0=0,
+                    y1=y_max,
+                    fillcolor=zone['color'],
+                    line=dict(width=0)
+                )
+                
+                # Add zone labels
+                fig_zones.add_annotation(
+                    x=(zone['min'] + zone['max']) / 2,
+                    y=y_max * 0.5,
+                    text=zone['name'],
+                    showarrow=False,
+                    font=dict(
+                        size=14,
+                        color="black"
+                    )
+                )
+            
+            # Add lactate curve
+            fig_zones.add_trace(go.Scatter(
+                x=df_plot[intensity_col],
+                y=df_plot['lactate'],
+                mode='lines+markers',
+                name='Lactate',
+                line=dict(color='#E6754E', width=3),
+                marker=dict(size=8)
+            ))
+            
+            # Add threshold line
+            fig_zones.add_vline(
+                x=threshold_value,
+                line_dash="dash",
+                line_color="black",
+                annotation_text=f"{primary_method}: {threshold_value:.1f}",
+                annotation_position="top"
+            )
+            
+            # Update layout
+            fig_zones.update_layout(
+                title='Training Zones',
+                xaxis_title=intensity_label,
+                yaxis_title='Lactate (mmol/L)',
+                template="plotly_white"
+            )
+            
+            # Store in session state
+            st.session_state['plotly_zones'] = fig_zones
+        else:
+            st.session_state['plotly_zones'] = None
+            
+    except Exception as e:
+        # If zones fallback fails
+        st.session_state['zones_fallback_error'] = str(e)
+        st.session_state['plotly_zones'] = None
 
 # Application entry point
 if __name__ == "__main__":
