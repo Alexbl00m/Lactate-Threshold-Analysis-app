@@ -86,8 +86,8 @@ def protocol_setup(test_type, test_parameters):
     elif test_type == "Swimming":
         swimming_protocol_inputs()
     
-    # Last step completion - MODIFIED to add clarification
-    last_step_completed = st.toggle("Was the last step fully completed?", value=False)
+    # Last step completion - Handle it here, not in protocol_additional_settings
+    last_step_completed = st.toggle("Was the last step fully completed?", value=False, key="last_step_toggle")
     
     if not last_step_completed:
         col1, col2 = st.columns([1, 4])
@@ -97,17 +97,46 @@ def protocol_setup(test_type, test_parameters):
     else:
         last_step_time = None
     
-    # Additional protocol settings
-    protocol_additional_settings()
-    
     # Store the last step info properly
     st.session_state['last_step_completed'] = last_step_completed
     st.session_state['last_step_time'] = last_step_time
+    
+    # Additional protocol settings - MODIFIED to remove duplicate toggle
+    modified_protocol_additional_settings()
     
     # Generate protocol button
     if st.button("Generate Test Protocol", type="primary"):
         generate_protocol_template(test_type, num_steps, step_length, test_parameters)
         st.success("Protocol generated! Please proceed to the Data Input tab.")
+
+def modified_protocol_additional_settings():
+    """Additional protocol settings without the last step toggle"""
+    import streamlit as st
+    
+    # Curve fitting method
+    st.subheader("Choose the default fitting method")
+    fitting_method = st.radio(
+        "",
+        ["3rd degree polynomial", "4th degree polynomial", "B-spline"],
+        horizontal=True
+    )
+    
+    # Include baseline value
+    include_baseline = st.toggle("Include baseline value in the curve fitting?", value=False)
+    
+    # Log-log method settings
+    log_log_portion = st.slider(
+        "Would you like to use only a portion of the data to fit the Log-log method? Default to 0.75 (meaning to use the first 75% of the data). You may choose a value between 0.25 and 1.",
+        min_value=0.25,
+        max_value=1.0,
+        value=0.75,
+        step=0.05
+    )
+    
+    # Store values in session state
+    st.session_state['fitting_method'] = fitting_method
+    st.session_state['include_baseline'] = include_baseline
+    st.session_state['log_log_portion'] = log_log_portion
 
 def cycling_protocol_inputs():
     """Cycling-specific protocol inputs"""
